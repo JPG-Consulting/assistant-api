@@ -14,6 +14,7 @@ from assistant_api.app.audio.encoders.opus import OpusEncoder
 from assistant_api.app.audio.encoders.pcm import PcmPassthroughEncoder
 from assistant_api.app.audio.types import Channels, PcmSpec, SampleRate
 from assistant_api.app.workers.tts_dummy import DummyTtsWorker
+from assistant_api.app.workers.tts_piper import PiperTtsWorker
 
 router = APIRouter(prefix="/v1/audio", tags=["speech"])
 
@@ -28,16 +29,29 @@ class SpeechRequest(BaseModel):
 
 @router.post("/speech")
 def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
-    """Stream dummy PCM audio for the requested text."""
-    worker = DummyTtsWorker()
-    stream = worker.process(
-        {"text": request.text, "voice": request.voice, "format": request.format}
-    )
-    pcm_spec = PcmSpec(
+    """Stream PCM audio for the requested text."""
+    payload = {"text": request.text, "voice": request.voice, "format": request.format}
+    default_pcm_spec = PcmSpec(
         sample_rate=SampleRate(16_000),
         channels=Channels(1),
         sample_width_bytes=2,
     )
+    pcm_spec = default_pcm_spec
+    model_name = "assistant-api-tts-dummy"
+    if PiperTtsWorker.is_available():
+        try:
+            worker = PiperTtsWorker()
+            stream = worker.process(payload)
+            pcm_spec = worker.pcm_spec or default_pcm_spec
+            model_name = "assistant-api-tts-piper"
+        except Exception:
+            worker = DummyTtsWorker()
+            stream = worker.process(payload)
+            pcm_spec = default_pcm_spec
+            model_name = "assistant-api-tts-dummy"
+    else:
+        worker = DummyTtsWorker()
+        stream = worker.process(payload)
     if request.format is None or request.format == "mp3":
         encoder = Mp3Encoder(pcm_spec)
         media_type = "audio/mpeg"
@@ -72,6 +86,6 @@ def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
     response.headers["content-disposition"] = (
         f'inline; filename="speech.{audio_format}"'
     )
-    response.headers["x-openai-model"] = "assistant-api-tts-dummy"
+    response.headers["x-openai-model"] = model_name
     response.headers["x-openai-audio-format"] = audio_format
     return response
