@@ -43,6 +43,15 @@ def create_app() -> FastAPI:
     configure_logging(settings)
 
     app = FastAPI()
+    logger = logging.getLogger(__name__)
+
+    @app.on_event("startup")
+    async def on_startup() -> None:
+        logger.info("Starting application.")
+
+    @app.on_event("shutdown")
+    async def on_shutdown() -> None:
+        logger.info("Shutting down application.")
 
     @app.get("/health")
     async def health() -> dict[str, str]:
