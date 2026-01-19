@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from assistant_api.app.audio.encoders.mp3 import Mp3Encoder
+from assistant_api.app.audio.encoders.opus import OpusEncoder
 from assistant_api.app.audio.encoders.pcm import PcmPassthroughEncoder
 from assistant_api.app.audio.types import Channels, PcmSpec, SampleRate
 from assistant_api.app.workers.tts_dummy import DummyTtsWorker
@@ -45,10 +46,14 @@ def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
         encoder = PcmPassthroughEncoder(pcm_spec)
         media_type = "audio/pcm"
         audio_format = "pcm"
+    elif request.format == "opus":
+        encoder = OpusEncoder(pcm_spec)
+        media_type = "audio/ogg; codecs=opus"
+        audio_format = "opus"
     else:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported format '{request.format}'. Supported formats: mp3, pcm.",
+            detail=f"Unsupported format '{request.format}'. Supported formats: mp3, pcm, opus.",
         )
 
     def stream_audio() -> Generator[bytes, None, None]:
