@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 
+from assistant_api.app.api.v1 import api_router
 from assistant_api.app.settings import load_settings
 
 if TYPE_CHECKING:
@@ -56,6 +57,8 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    app.include_router(api_router)
 
     return app
 
