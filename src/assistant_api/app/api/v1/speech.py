@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -39,9 +40,11 @@ def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
     if request.format is None or request.format == "mp3":
         encoder = Mp3Encoder(pcm_spec)
         media_type = "audio/mpeg"
+        audio_format = "mp3"
     elif request.format == "pcm":
         encoder = PcmPassthroughEncoder(pcm_spec)
         media_type = "audio/pcm"
+        audio_format = "pcm"
     else:
         raise HTTPException(
             status_code=400,
@@ -58,4 +61,12 @@ def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
         if flush_chunk:
             yield flush_chunk
 
-    return StreamingResponse(stream_audio(), media_type=media_type)
+    response = StreamingResponse(stream_audio(), media_type=media_type)
+    response.headers["x-request-id"] = str(uuid4())
+    response.headers["cache-control"] = "no-store"
+    response.headers["content-disposition"] = (
+        f'inline; filename="speech.{audio_format}"'
+    )
+    response.headers["x-openai-model"] = "assistant-api-tts-dummy"
+    response.headers["x-openai-audio-format"] = audio_format
+    return response
