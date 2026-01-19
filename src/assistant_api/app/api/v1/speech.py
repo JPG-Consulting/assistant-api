@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from assistant_api.app.audio.encoders.mp3 import Mp3Encoder
 from assistant_api.app.audio.encoders.pcm import PcmPassthroughEncoder
 from assistant_api.app.audio.types import Channels, PcmSpec, SampleRate
 from assistant_api.app.workers.tts_dummy import DummyTtsWorker
@@ -30,13 +31,22 @@ def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
     stream = worker.process(
         {"text": request.text, "voice": request.voice, "format": request.format}
     )
-    encoder = PcmPassthroughEncoder(
-        PcmSpec(
-            sample_rate=SampleRate(16_000),
-            channels=Channels(1),
-            sample_width_bytes=2,
-        )
+    pcm_spec = PcmSpec(
+        sample_rate=SampleRate(16_000),
+        channels=Channels(1),
+        sample_width_bytes=2,
     )
+    if request.format is None or request.format == "mp3":
+        encoder = Mp3Encoder(pcm_spec)
+        media_type = "audio/mpeg"
+    elif request.format == "pcm":
+        encoder = PcmPassthroughEncoder(pcm_spec)
+        media_type = "audio/pcm"
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported format '{request.format}'. Supported formats: mp3, pcm.",
+        )
 
     def stream_audio() -> Generator[bytes, None, None]:
         while True:
@@ -48,4 +58,4 @@ def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
         if flush_chunk:
             yield flush_chunk
 
-    return StreamingResponse(stream_audio(), media_type="audio/pcm")
+    return StreamingResponse(stream_audio(), media_type=media_type)
