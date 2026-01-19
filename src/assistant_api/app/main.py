@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
     async def on_startup() -> None:
         logger.info("Starting application.")
         prewarm_manager = get_prewarm_manager()
-        default_resources = ("tts:default",)
+        default_resources = ("tts:default", "tts:piper:default")
         for resource_id in default_resources:
             prewarm_manager.register_default_resource(resource_id)
         logger.info(

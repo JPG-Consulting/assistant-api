@@ -53,6 +53,10 @@ class PiperTtsWorker(BaseWorker):
     def shutdown(self) -> None:
         """No-op shutdown for the Piper worker."""
 
+    def preload(self) -> None:
+        """Load the Piper voice model if needed."""
+        self._load_voice()
+
     def _load_voice(self) -> Any:
         if self._voice is not None:
             return self._voice
