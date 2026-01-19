@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 
 from assistant_api.app.api.v1 import api_router
+from assistant_api.app.core.prewarm import get_prewarm_manager
 from assistant_api.app.settings import load_settings
 
 if TYPE_CHECKING:
@@ -49,6 +50,14 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup() -> None:
         logger.info("Starting application.")
+        prewarm_manager = get_prewarm_manager()
+        default_resources = ("tts:default",)
+        for resource_id in default_resources:
+            prewarm_manager.register_default_resource(resource_id)
+        logger.info(
+            "Registered default prewarm resources: %s",
+            ", ".join(default_resources),
+        )
 
     @app.on_event("shutdown")
     async def on_shutdown() -> None:
