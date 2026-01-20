@@ -175,10 +175,10 @@ def _normalize_pcm_chunk(chunk: Any) -> bytes:
     audio_chunk_type = _get_audio_chunk_type()
     if audio_chunk_type is not None and isinstance(chunk, audio_chunk_type):
         logger.info("PiperTtsWorker: normalizing AudioChunk PCM samples")
-        sample_count = _get_audio_sample_count(chunk)
+        sample_count = _get_audio_sample_count(chunk.samples)
         if sample_count is not None:
             logger.debug("PiperTtsWorker: AudioChunk sample count=%s", sample_count)
-        return _normalize_float_pcm(chunk)
+        return _normalize_float_pcm(chunk.samples)
     if isinstance(chunk, (bytes, bytearray, memoryview)):
         return bytes(chunk)
     if isinstance(chunk, array):
