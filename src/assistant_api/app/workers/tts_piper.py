@@ -33,10 +33,28 @@ class PiperTtsWorker(BaseWorker):
 
     @classmethod
     def is_available(cls) -> bool:
+        logger.info(
+            "PiperTtsWorker: checking availability using Python module (no external binary)."
+        )
         if importlib.util.find_spec("piper") is None:
+            logger.warning("PiperTtsWorker: availability = False (reason: module missing)")
             return False
         model_path = _get_model_path()
-        return model_path is not None and model_path.is_file()
+        if model_path is None:
+            logger.warning(
+                "PiperTtsWorker: availability = False (reason: %s unset)", _MODEL_PATH_ENV
+            )
+            return False
+        if not model_path.is_file():
+            logger.warning(
+                "PiperTtsWorker: availability = False (reason: model file missing at %s)",
+                model_path,
+            )
+            return False
+        logger.info(
+            "PiperTtsWorker: availability = True (model path: %s)", model_path
+        )
+        return True
 
     @property
     def pcm_spec(self) -> PcmSpec | None:
@@ -68,14 +86,24 @@ class PiperTtsWorker(BaseWorker):
         if self._voice is not None:
             return self._voice
         if importlib.util.find_spec("piper") is None:
+            logger.error(
+                "PiperTtsWorker: Piper module missing; external binary is not used."
+            )
             raise RuntimeError("Piper is not installed.")
         model_path = _get_model_path()
         if model_path is None or not model_path.is_file():
+            logger.error(
+                "PiperTtsWorker: model file missing; %s must point to a Piper model file.",
+                _MODEL_PATH_ENV,
+            )
             raise RuntimeError(
                 f"Piper model file not found. Set {_MODEL_PATH_ENV} to a valid path."
             )
         from piper.voice import PiperVoice
 
+        logger.info(
+            "PiperTtsWorker: loading Piper voice from model path: %s", model_path
+        )
         self._voice = PiperVoice.load(str(model_path))
         self._pcm_spec = _pcm_spec_from_voice(self._voice)
         return self._voice
@@ -85,6 +113,7 @@ def _get_model_path() -> Path | None:
     model_path = os.environ.get(_MODEL_PATH_ENV)
     if not model_path:
         return None
+    logger.info("PiperTtsWorker: resolved %s=%s", _MODEL_PATH_ENV, model_path)
     return Path(model_path)
 
 
