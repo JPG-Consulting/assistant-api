@@ -20,6 +20,7 @@ _DEFAULT_SAMPLE_RATE = SampleRate(16_000)
 _PCM_SAMPLE_WIDTH_BYTES = 2
 _DEFAULT_CHUNK_SIZE = 4096
 logger = logging.getLogger(__name__)
+_AUDIO_CHUNK_TYPE: type[Any] | None | bool = None
 
 
 class PiperTtsWorker(BaseWorker):
@@ -171,6 +172,13 @@ def _synthesize_pcm_chunks(voice: Any, text: str) -> Iterable[bytes]:
 def _normalize_pcm_chunk(chunk: Any) -> bytes:
     if isinstance(chunk, tuple) and chunk:
         return _normalize_pcm_chunk(chunk[0])
+    audio_chunk_type = _get_audio_chunk_type()
+    if audio_chunk_type is not None and isinstance(chunk, audio_chunk_type):
+        logger.info("PiperTtsWorker: normalizing AudioChunk PCM samples")
+        sample_count = _get_audio_sample_count(chunk.audio)
+        if sample_count is not None:
+            logger.debug("PiperTtsWorker: AudioChunk sample count=%s", sample_count)
+        return _normalize_float_pcm(chunk.audio)
     if isinstance(chunk, (bytes, bytearray, memoryview)):
         return bytes(chunk)
     if isinstance(chunk, array):
@@ -228,3 +236,53 @@ def _get_numpy_module() -> Any | None:
     import numpy
 
     return numpy
+
+
+def _get_audio_chunk_type() -> type[Any] | None:
+    global _AUDIO_CHUNK_TYPE
+    if _AUDIO_CHUNK_TYPE is not None:
+        return None if _AUDIO_CHUNK_TYPE is False else _AUDIO_CHUNK_TYPE
+    try:
+        from piper.voice import AudioChunk
+    except Exception:
+        _AUDIO_CHUNK_TYPE = False
+        return None
+    _AUDIO_CHUNK_TYPE = AudioChunk
+    return _AUDIO_CHUNK_TYPE
+
+
+def _get_audio_sample_count(audio: Any) -> int | None:
+    numpy_module = _get_numpy_module()
+    if numpy_module is not None and isinstance(audio, numpy_module.ndarray):
+        return int(audio.size)
+    try:
+        return len(audio)
+    except TypeError:
+        return None
+
+
+def _normalize_float_pcm(audio: Any) -> bytes:
+    if isinstance(audio, (bytes, bytearray, memoryview)):
+        return bytes(audio)
+    numpy_module = _get_numpy_module()
+    if numpy_module is not None and isinstance(audio, numpy_module.ndarray):
+        float_array = numpy_module.asarray(audio, dtype=numpy_module.float32)
+        int_array = numpy_module.clip(
+            float_array * 32767.0, -32768, 32767
+        ).astype(numpy_module.int16)
+        if int_array.dtype.byteorder == ">" or (
+            int_array.dtype.byteorder == "=" and sys.byteorder == "big"
+        ):
+            int_array = int_array.byteswap().newbyteorder("<")
+        return int_array.tobytes()
+    pcm_array = array("h")
+    for sample in audio:
+        scaled = int(round(sample * 32767.0))
+        if scaled < -32768:
+            scaled = -32768
+        elif scaled > 32767:
+            scaled = 32767
+        pcm_array.append(scaled)
+    if sys.byteorder != "little":
+        pcm_array.byteswap()
+    return pcm_array.tobytes()
