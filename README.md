@@ -1,46 +1,26 @@
 # assistant-api
 
-assistant-api is a Python backend service for voice assistants. It will provide an OpenAI-compatible API with an initial focus on Text-to-Speech (TTS) streaming output. The project targets Linux deployments and is intended to run as a systemd-managed service within a Python virtual environment.
+assistant-api is a Python backend service for voice assistants. It currently exposes a minimal, OpenAI-compatible Text-to-Speech (TTS) API with streaming audio output, designed for Linux deployments as a systemd-managed service.
 
-## Goals
+## Current behavior
 
-- Provide a clean, extensible foundation for future TTS, STT, and LLM services.
-- Keep the architecture modular and easy to evolve.
-- Prioritize clear, minimal documentation and predictable operations.
+- **One-shot TTS**: `POST /v1/audio/speech` streams audio for a single text payload.
+- **Streaming pipeline**: text → PCM → encoder → HTTP stream.
+- **Supported formats**: `mp3` (default), `opus`, `pcm`.
+- **Engines**: the dummy TTS worker is always available; Piper is used when installed and configured.
 
-## Non-goals (for now)
+## Prewarm behavior
 
-- Implementing TTS/STT/LLM providers or business logic.
-- Defining detailed API behavior beyond high-level compatibility.
-
-## Proposed repository structure
-
-```
-assistant-api/
-├── LICENSE
-├── README.md
-├── docs/
-│   ├── README.md
-│   ├── user/
-│   │   └── README.md
-│   ├── developer/
-│   │   └── README.md
-│   └── ai/
-│       └── README.md
-├── src/                      # Planned Python package root
-│   └── assistant_api/
-├── tests/                    # Planned test suite
-├── config/                   # Planned service configuration
-│   └── systemd/
-└── scripts/                  # Planned tooling helpers
-```
+- `POST /v1/audio/prewarm` records prewarm intent for audio resources.
+- Piper prewarm is best-effort and optional; it only runs when Piper is available.
 
 ## Documentation
 
 - User documentation: `docs/user/README.md`
 - Developer documentation: `docs/developer/README.md`
 - AI assistant context: `docs/ai/README.md`
+- Backlog and follow-ups: `TODO.md`
 
 ## Status
 
-This repository currently contains documentation scaffolding only. Application code will be added in future iterations.
+The repository contains a working TTS endpoint with streaming audio output. Session-based or incremental TTS is future work; see `TODO.md` for follow-ups.

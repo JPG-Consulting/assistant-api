@@ -1,11 +1,11 @@
 # Developer Documentation
 
-This section will describe the architecture and the developer workflow for assistant-api.
+This section describes the current architecture and developer workflow for assistant-api.
 
-## Planned topics
+## Topics
 
-- Repository structure and key modules
-- Local development setup
-- Testing strategy
-- Release process
-- Contribution guidelines
+- Architecture overview: `architecture.md`
+- Repository layout: `directory_structure.md`
+- Known gaps and follow-ups: `../../TODO.md`
+
+Session-based or incremental TTS is future work; documentation should reflect current behavior.
