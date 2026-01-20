@@ -24,6 +24,10 @@ Session-based or incremental TTS is future work; documentation should reflect cu
   ```bash
   pip install -r requirements.txt
   ```
+- **Install the project (editable)**: required so the `assistant_api` package is importable when running the server (`uvicorn assistant_api.app.main:app`) and for manual tests that start the server automatically.
+  ```bash
+  pip install -e .
+  ```
 - **Run the server**:
   ```bash
   uvicorn assistant_api.app.main:app --reload
