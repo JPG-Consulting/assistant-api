@@ -7,7 +7,8 @@ import logging
 import sys
 from array import array
 from pathlib import Path
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from assistant_api.app.audio.pcm_stream import PcmBufferStream
 from assistant_api.app.audio.stream import AudioStream
@@ -157,6 +158,12 @@ def _synthesize_pcm_chunks(voice: Any, text: str) -> Iterable[bytes]:
                 yield normalized
         return
     output = voice.synthesize(text)
+    if _is_chunk_iterable(output):
+        for chunk in output:
+            normalized = _normalize_pcm_chunk(chunk)
+            if normalized:
+                yield normalized
+        return
     pcm_bytes = _normalize_pcm_chunk(output)
     yield from _chunk_bytes(pcm_bytes, _DEFAULT_CHUNK_SIZE)
 
@@ -197,6 +204,15 @@ def _normalize_pcm_chunk(chunk: Any) -> bytes:
         "Unsupported Piper audio payload type; expected bytes, bytearray, array('h'), "
         "list[int], or numpy.ndarray containing signed 16-bit PCM samples."
     )
+
+
+def _is_chunk_iterable(output: Any) -> bool:
+    if isinstance(output, (bytes, bytearray, memoryview, array, list, str, dict)):
+        return False
+    numpy_module = _get_numpy_module()
+    if numpy_module is not None and isinstance(output, numpy_module.ndarray):
+        return False
+    return isinstance(output, Iterable)
 
 
 def _chunk_bytes(data: bytes, size: int) -> Iterable[bytes]:
