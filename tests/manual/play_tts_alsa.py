@@ -28,7 +28,7 @@ def main():
     parser.add_argument("--format", default="pcm", choices=["pcm", "mp3", "opus"], help="Audio format")
     parser.add_argument("--model", default=None, help="Model identifier")
     parser.add_argument("--voice", default=None, help="Voice identifier")
-    parser.add_argument("--sample-rate", type=int, default=22050, help="PCM sample rate for playback")
+    parser.add_argument("--sample-rate", type=int, default=16000, help="PCM sample rate for playback")
     parser.add_argument("--channels", type=int, default=1, help="PCM channel count for playback")
     parser.add_argument("--host", default="127.0.0.1", help="Server host")
     parser.add_argument("--port", type=int, default=8000, help="Server port")
@@ -73,7 +73,11 @@ def main():
         requested_voice = args.voice or "server default"
         logger.info("Requested voice: %s", requested_voice)
         logger.info("Requested audio format: %s", args.format)
-        logger.info("PCM playback: rate=%s channels=%s", args.sample_rate, args.channels)
+        logger.info(
+            "PCM playback spec: S16_LE %s Hz %s channel(s)",
+            args.sample_rate,
+            args.channels,
+        )
 
         r = requests.post(
             f"http://{args.host}:{args.port}/v1/audio/speech",

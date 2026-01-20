@@ -163,13 +163,13 @@ def _synthesize_pcm_chunks(voice: Any, text: str) -> Iterable[bytes]:
     audio_chunk_type = _get_audio_chunk_type()
     if audio_chunk_type is not None:
         if isinstance(output, audio_chunk_type):
-            logger.info("PiperTtsWorker: streaming AudioChunk PCM bytes")
+            logger.debug("PiperTtsWorker: streaming AudioChunk PCM bytes")
             yield from _chunk_bytes(output.audio_int16_bytes, _DEFAULT_CHUNK_SIZE)
             return
         if isinstance(output, (list, tuple)) and output and isinstance(
             output[0], audio_chunk_type
         ):
-            logger.info("PiperTtsWorker: streaming AudioChunk PCM bytes")
+            logger.debug("PiperTtsWorker: streaming AudioChunk PCM bytes")
             for audio_chunk in output:
                 yield from _chunk_bytes(
                     audio_chunk.audio_int16_bytes, _DEFAULT_CHUNK_SIZE
@@ -182,7 +182,7 @@ def _synthesize_pcm_chunks(voice: Any, text: str) -> Iterable[bytes]:
             except StopIteration:
                 return
             if isinstance(first_chunk, audio_chunk_type):
-                logger.info("PiperTtsWorker: streaming AudioChunk PCM bytes")
+                logger.debug("PiperTtsWorker: streaming AudioChunk PCM bytes")
                 for audio_chunk in iterator:
                     yield from _chunk_bytes(
                         audio_chunk.audio_int16_bytes, _DEFAULT_CHUNK_SIZE
@@ -274,39 +274,3 @@ def _get_audio_chunk_type() -> type[Any] | None:
     _AUDIO_CHUNK_TYPE = AudioChunk
     return _AUDIO_CHUNK_TYPE
 
-
-def _get_audio_sample_count(audio: Any) -> int | None:
-    numpy_module = _get_numpy_module()
-    if numpy_module is not None and isinstance(audio, numpy_module.ndarray):
-        return int(audio.size)
-    try:
-        return len(audio)
-    except TypeError:
-        return None
-
-
-def _normalize_float_pcm(audio: Any) -> bytes:
-    if isinstance(audio, (bytes, bytearray, memoryview)):
-        return bytes(audio)
-    numpy_module = _get_numpy_module()
-    if numpy_module is not None and isinstance(audio, numpy_module.ndarray):
-        float_array = numpy_module.asarray(audio, dtype=numpy_module.float32)
-        int_array = numpy_module.clip(
-            float_array * 32767.0, -32768, 32767
-        ).astype(numpy_module.int16)
-        if int_array.dtype.byteorder == ">" or (
-            int_array.dtype.byteorder == "=" and sys.byteorder == "big"
-        ):
-            int_array = int_array.byteswap().newbyteorder("<")
-        return int_array.tobytes()
-    pcm_array = array("h")
-    for sample in audio:
-        scaled = int(round(sample * 32767.0))
-        if scaled < -32768:
-            scaled = -32768
-        elif scaled > 32767:
-            scaled = 32767
-        pcm_array.append(scaled)
-    if sys.byteorder != "little":
-        pcm_array.byteswap()
-    return pcm_array.tobytes()

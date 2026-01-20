@@ -39,6 +39,14 @@ Implications:
 - No multi-model cache exists
 - This is intentional to keep memory and behavior predictable
 
+### Piper AudioChunk PCM contract
+
+- Piper's Python API (`piper-tts >= 1.3.0`) emits `AudioChunk` results.
+- `AudioChunk.audio_int16_bytes` is already signed 16-bit little-endian PCM that
+  matches the assistant-api PCM contract.
+- assistant-api performs no resampling, float conversion, or normalization for
+  this output.
+
 ## 4. Prewarm semantics
 
 - Prewarm requests are **hints**, not guarantees
