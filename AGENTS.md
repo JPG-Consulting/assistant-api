@@ -162,8 +162,9 @@ When generating output, AI assistants should treat the following as authoritativ
 1. The current code
 2. `README.md`
 3. `docs/`
-4. `TODO.md`
-5. This `AGENTS.md`
+4. `docs/developer/TTS_MODEL_LIFECYCLE.md`
+5. `TODO.md`
+6. This `AGENTS.md`
 
 If something is unclear, the correct action is to **ask**, not assume.
 

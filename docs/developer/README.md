@@ -7,6 +7,7 @@ This section describes the current architecture and developer workflow for assis
 - Architecture overview: `architecture.md`
 - Repository layout: `directory_structure.md`
 - Known gaps and follow-ups: `../../TODO.md`
+- TTS model lifecycle contract: `TTS_MODEL_LIFECYCLE.md`
 - AI-assisted changes must follow `../../AGENTS.md`
 - Manual ALSA streaming tests: `ALSA_STREAMING_TEST.md`, `FFMPEG_STREAMING_TEST.md`
 
