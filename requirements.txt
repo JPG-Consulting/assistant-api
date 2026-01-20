@@ -4,3 +4,4 @@ pydantic
 PyYAML
 lameenc
 opuslib
+requests>=2.0
