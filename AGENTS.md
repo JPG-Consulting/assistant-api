@@ -13,6 +13,14 @@ agent is responsible for.
 
 ---
 
+## 0. Audience and authority (normative for AI assistants)
+
+This document is **normative guidance for AI assistants** working in this repository.
+AI-generated changes must follow this file as a source of authority, alongside the
+other sources listed below.
+
+---
+
 ## 1. assistant-api (this project)
 
 ### Role
@@ -54,6 +62,8 @@ Satellites are responsible for:
 - Calling LLM APIs (if any)
 - Deciding *when* and *what* text to send to TTS
 - Playing, forwarding, or storing streamed audio
+
+AI assistants are **not** satellites and do not act as client applications.
 
 ### Key rule
 
@@ -130,10 +140,21 @@ AI assistants may be used to:
 ### Constraints
 
 AI assistants **must**:
+- Treat this file as **authoritative, normative guidance**
 - Reflect current behavior, not planned features
 - Avoid inventing APIs or capabilities
 - Avoid architectural rewrites unless explicitly requested
 - Prefer minimal, incremental changes
+
+AI assistants **must do**:
+- Make additive, scope-safe changes unless explicitly asked to refactor
+- Keep documentation factual, minimal, and aligned with the current code
+- Validate assumptions against the current repository sources of truth
+
+AI assistants **must not**:
+- Expand project scope or introduce new responsibilities
+- Add hidden orchestration, background processes, or “magic” behavior
+- Claim features, workflows, or APIs that do not exist
 
 ### Source of truth
 
