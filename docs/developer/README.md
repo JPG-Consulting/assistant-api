@@ -9,3 +9,20 @@ This section describes the current architecture and developer workflow for assis
 - Known gaps and follow-ups: `../../TODO.md`
 
 Session-based or incremental TTS is future work; documentation should reflect current behavior.
+
+## Run locally (development)
+
+- **Python**: 3.10 or newer.
+- **Virtual environment**:
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
+- **Install dependencies**:
+  ```bash
+  pip install -r requirements.txt
+  ```
+- **Run the server**:
+  ```bash
+  uvicorn assistant_api.app.main:app --reload
+  ```
