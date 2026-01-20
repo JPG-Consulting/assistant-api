@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from asyncio import Lock
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -14,7 +14,7 @@ from assistant_api.app.workers.tts_piper import PiperTtsWorker
 router = APIRouter(prefix="/v1/audio", tags=["prewarm"])
 logger = logging.getLogger(__name__)
 _PIPER_PREWARM_WORKER: PiperTtsWorker | None = None
-_PIPER_PREWARM_LOCK = Lock()
+_PIPER_PREWARM_LOCK = asyncio.Lock()
 
 
 class PrewarmPayload(BaseModel):
@@ -37,14 +37,13 @@ async def prewarm_audio(payload: PrewarmPayload) -> dict[str, str]:
     manager.request_optional(request)
     if payload.resource_id and payload.resource_id.startswith("tts:piper"):
         if PiperTtsWorker.is_available():
-            try:
-                global _PIPER_PREWARM_WORKER
-                if _PIPER_PREWARM_WORKER is None:
-                    async with _PIPER_PREWARM_LOCK:
-                        if _PIPER_PREWARM_WORKER is None:
-                            worker = PiperTtsWorker()
-                            worker.preload()
+            global _PIPER_PREWARM_WORKER
+            if _PIPER_PREWARM_WORKER is None:
+                async with _PIPER_PREWARM_LOCK:
+                    if _PIPER_PREWARM_WORKER is None:
+                        worker = PiperTtsWorker()
+                        if await asyncio.to_thread(worker.preload):
                             _PIPER_PREWARM_WORKER = worker
-            except RuntimeError as exc:
-                logger.warning("Piper prewarm skipped: %s", exc)
+                        else:
+                            logger.warning("Piper prewarm skipped: preload failed")
     return {"status": "accepted"}

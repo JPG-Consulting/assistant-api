@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import os
 from pathlib import Path
 from typing import Any, Iterable
@@ -16,6 +17,7 @@ _MODEL_PATH_ENV = "PIPER_MODEL_PATH"
 _DEFAULT_SAMPLE_RATE = SampleRate(16_000)
 _PCM_SAMPLE_WIDTH_BYTES = 2
 _DEFAULT_CHUNK_SIZE = 4096
+logger = logging.getLogger(__name__)
 
 
 class PiperTtsWorker(BaseWorker):
@@ -53,9 +55,14 @@ class PiperTtsWorker(BaseWorker):
     def shutdown(self) -> None:
         """No-op shutdown for the Piper worker."""
 
-    def preload(self) -> None:
+    def preload(self) -> bool:
         """Load the Piper voice model if needed."""
-        self._load_voice()
+        try:
+            self._load_voice()
+        except Exception as exc:
+            logger.warning("Piper preload failed: %s", exc)
+            return False
+        return True
 
     def _load_voice(self) -> Any:
         if self._voice is not None:
