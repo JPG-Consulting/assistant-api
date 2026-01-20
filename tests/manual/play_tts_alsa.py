@@ -24,10 +24,17 @@ def main():
     parser.add_argument("--format", default="pcm", choices=["pcm", "mp3", "opus"], help="Audio format")
     parser.add_argument("--model", default=None, help="Model identifier")
     parser.add_argument("--voice", default=None, help="Voice identifier")
+    parser.add_argument("--sample-rate", type=int, default=22050, help="PCM sample rate for playback")
+    parser.add_argument("--channels", type=int, default=1, help="PCM channel count for playback")
     parser.add_argument("--host", default="127.0.0.1", help="Server host")
     parser.add_argument("--port", type=int, default=8000, help="Server port")
+    parser.add_argument("--no-server", action="store_true", help="Do not start or stop the API server")
     parser.add_argument("text", help="Text to speak")
     args = parser.parse_args()
+
+    # This manual test intentionally supports PCM playback only.
+    if args.format != "pcm":
+        parser.error("Only pcm playback is supported by this test")
 
     server_cmd = [
         sys.executable,
@@ -39,9 +46,15 @@ def main():
         str(args.port),
     ]
 
-    server = subprocess.Popen(server_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    server = None
     try:
-        wait_for_server(f"http://{args.host}:{args.port}/v1/audio/speech")
+        if not args.no_server:
+            server = subprocess.Popen(
+                server_cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            wait_for_server(f"http://{args.host}:{args.port}/v1/audio/speech")
 
         payload = {
             "input": args.text,
@@ -59,11 +72,18 @@ def main():
         )
         r.raise_for_status()
 
-        if args.format != "pcm":
-            raise RuntimeError("Only pcm playback is supported by this test")
-
         aplay = subprocess.Popen(
-            ["aplay", "-D", args.device, "-f", "S16_LE"],
+            [
+                "aplay",
+                "-D",
+                args.device,
+                "-f",
+                "S16_LE",
+                "-r",
+                str(args.sample_rate),
+                "-c",
+                str(args.channels),
+            ],
             stdin=subprocess.PIPE,
         )
 
@@ -75,8 +95,9 @@ def main():
         aplay.wait()
 
     finally:
-        server.send_signal(signal.SIGTERM)
-        server.wait(timeout=5)
+        if server is not None:
+            server.send_signal(signal.SIGTERM)
+            server.wait(timeout=5)
 
 if __name__ == "__main__":
     main()
