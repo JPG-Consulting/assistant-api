@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  play_tts_ffmpeg_alsa.sh [--host HOST] [--port PORT] [--no-server] <alsa_device> <format> <text>
+  play_tts_ffmpeg_alsa.sh [--host HOST] [--port PORT] [--voice VOICE] [--no-server] <alsa_device> <format> <text>
 
 Required arguments:
   alsa_device   ALSA output device passed to aplay (-D)
@@ -14,12 +14,18 @@ Required arguments:
 Optional arguments:
   --host        Server host (default: 127.0.0.1)
   --port        Server port (default: 8000)
+  --voice       Optional voice identifier
   --no-server   Assume the server is already running
+
+Notes:
+  This manual test validates compressed streaming only (mp3/opus).
+  It is not suitable for PCM debugging; use play_tts_alsa.py for PCM playback.
 USAGE
 }
 
 host="127.0.0.1"
 port="8000"
+voice=""
 no_server=0
 positional=()
 
@@ -36,6 +42,10 @@ while [[ $# -gt 0 ]]; do
     --no-server)
       no_server=1
       shift
+      ;;
+    --voice)
+      voice="$2"
+      shift 2
       ;;
     --help|-h)
       usage
@@ -123,6 +133,12 @@ if [[ "$no_server" -eq 0 ]]; then
 fi
 
 payload=$(printf '{"input":"%s","format":"%s"}' "$(json_escape "$text")" "$format")
+if [[ -n "$voice" ]]; then
+  payload=$(printf '{"input":"%s","format":"%s","voice":"%s"}' \
+    "$(json_escape "$text")" \
+    "$format" \
+    "$(json_escape "$voice")")
+fi
 
 curl --silent --show-error -N \
   -H "Content-Type: application/json" \

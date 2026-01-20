@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 import argparse
+import logging
+import signal
 import subprocess
 import sys
 import time
+
 import requests
-import signal
+
+logger = logging.getLogger(__name__)
 
 def wait_for_server(url, timeout=10):
     start = time.time()
@@ -31,6 +35,7 @@ def main():
     parser.add_argument("--no-server", action="store_true", help="Do not start or stop the API server")
     parser.add_argument("text", help="Text to speak")
     args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     # This manual test intentionally supports PCM playback only.
     if args.format != "pcm":
@@ -65,6 +70,11 @@ def main():
         if args.voice:
             payload["voice"] = args.voice
 
+        requested_voice = args.voice or "server default"
+        logger.info("Requested voice: %s", requested_voice)
+        logger.info("Requested audio format: %s", args.format)
+        logger.info("PCM playback: rate=%s channels=%s", args.sample_rate, args.channels)
+
         r = requests.post(
             f"http://{args.host}:{args.port}/v1/audio/speech",
             json=payload,
@@ -72,6 +82,7 @@ def main():
         )
         r.raise_for_status()
 
+        logger.info("Starting ALSA playback...")
         aplay = subprocess.Popen(
             [
                 "aplay",

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib.util
 import logging
+import sys
+from array import array
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -160,13 +162,41 @@ def _synthesize_pcm_chunks(voice: Any, text: str) -> Iterable[bytes]:
 
 
 def _normalize_pcm_chunk(chunk: Any) -> bytes:
-    if isinstance(chunk, (bytes, bytearray, memoryview)):
-        return bytes(chunk)
-    if hasattr(chunk, "tobytes"):
-        return chunk.tobytes()
     if isinstance(chunk, tuple) and chunk:
         return _normalize_pcm_chunk(chunk[0])
-    raise TypeError("Unexpected Piper audio payload; expected bytes-like PCM data.")
+    if isinstance(chunk, (bytes, bytearray, memoryview)):
+        return bytes(chunk)
+    if isinstance(chunk, array):
+        if chunk.typecode != "h":
+            logger.error(
+                "PiperTtsWorker: unsupported PCM array typecode %s",
+                chunk.typecode,
+            )
+            raise TypeError(
+                "Unsupported Piper audio array type; expected array('h') PCM samples."
+            )
+        pcm_array = array("h", chunk)
+        if sys.byteorder != "little":
+            pcm_array.byteswap()
+        return pcm_array.tobytes()
+    if isinstance(chunk, list):
+        pcm_array = array("h", chunk)
+        if sys.byteorder != "little":
+            pcm_array.byteswap()
+        return pcm_array.tobytes()
+    numpy_module = _get_numpy_module()
+    if numpy_module is not None and isinstance(chunk, numpy_module.ndarray):
+        pcm_array = numpy_module.asarray(chunk, dtype=numpy_module.int16)
+        if pcm_array.dtype.byteorder == ">" or (
+            pcm_array.dtype.byteorder == "=" and sys.byteorder == "big"
+        ):
+            pcm_array = pcm_array.byteswap().newbyteorder("<")
+        return pcm_array.tobytes()
+    logger.error("PiperTtsWorker: unsupported PCM chunk type %s", type(chunk))
+    raise TypeError(
+        "Unsupported Piper audio payload type; expected bytes, bytearray, array('h'), "
+        "list[int], or numpy.ndarray containing signed 16-bit PCM samples."
+    )
 
 
 def _chunk_bytes(data: bytes, size: int) -> Iterable[bytes]:
@@ -174,3 +204,11 @@ def _chunk_bytes(data: bytes, size: int) -> Iterable[bytes]:
         return
     for start in range(0, len(data), size):
         yield data[start : start + size]
+
+
+def _get_numpy_module() -> Any | None:
+    if importlib.util.find_spec("numpy") is None:
+        return None
+    import numpy
+
+    return numpy
