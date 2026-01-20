@@ -15,6 +15,7 @@ Top-level files and directories:
 - `README.md` — project overview
 - `TODO.md` — backlog and follow-ups
 - `LICENSE` — licensing information
+- `config/` — example configuration files
 - `docs/` — project documentation
 - `src/` — application source code
 
@@ -58,4 +59,4 @@ Within the package, the main areas are:
 
 ## 4. Not yet present
 
-Directories such as `tests/`, `config/`, and `scripts/` are not part of the repository yet. If added later, they should be documented here with their intended responsibilities.
+Directories such as `tests/` and `scripts/` are not part of the repository yet. If added later, they should be documented here with their intended responsibilities.

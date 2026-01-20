@@ -32,3 +32,23 @@ Session-based or incremental TTS is future work; documentation should reflect cu
   ```bash
   uvicorn assistant_api.app.main:app --reload
   ```
+
+## Configuration
+
+The service reads configuration from a YAML file.
+
+- **Start with an explicit config file**:
+  ```bash
+  uvicorn assistant_api.app.main:app --config /path/to/config.yaml
+  ```
+- **Default config path**:
+  - If `--config` is not provided, the service looks for `/etc/assistant-api/config.yaml`.
+  - If the file does not exist, startup fails immediately.
+- **Example configuration**: use `config/config.yaml.example` as a starting point.
+
+### `tts:` section
+
+- `engine`: TTS engine name (`piper` or `dummy`).
+- `models_path`: directory that contains Piper model files (required for `piper`).
+- `default_model`: default voice model name (without `.onnx`) used when no `voice` is supplied.
+- Request payloads can override the default by passing `voice`.

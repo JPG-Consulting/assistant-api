@@ -1,0 +1,17 @@
+# Example configuration for assistant-api.
+# Copy this file to /etc/assistant-api/config.yaml or pass it via --config.
+
+logging:
+  # Directory where assistant-api writes its log file.
+  directory: /var/log/assistant-api
+
+tts:
+  # TTS engine to use: "piper" or "dummy".
+  engine: piper
+  # Directory containing Piper voice models (expects <voice>.onnx files).
+  models_path: /opt/piper/voices
+  # Default voice model name (without .onnx). Used when no "voice" is provided.
+  # The default model is loaded on first use (or via prewarm) and kept resident
+  # in the Piper worker for subsequent requests.
+  default_model: en_US-amy-low
+  # Additional models can be requested per call using the "voice" field.
