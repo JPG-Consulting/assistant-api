@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from assistant_api.app.core.prewarm import PrewarmRequest, get_prewarm_manager
+from assistant_api.app.settings import Settings
 from assistant_api.app.workers.tts_piper import PiperTtsWorker
 
 router = APIRouter(prefix="/v1/audio", tags=["prewarm"])
@@ -25,8 +26,15 @@ class PrewarmPayload(BaseModel):
     voice: str | None = None
 
 
+def get_settings(request: Request) -> Settings:
+    return request.app.state.settings
+
+
 @router.post("/prewarm")
-async def prewarm_audio(payload: PrewarmPayload) -> dict[str, str]:
+async def prewarm_audio(
+    payload: PrewarmPayload,
+    settings: Settings = Depends(get_settings),
+) -> dict[str, str]:
     """Record prewarm intent for audio resources without loading models."""
     manager = get_prewarm_manager()
     request = PrewarmRequest(
@@ -36,12 +44,12 @@ async def prewarm_audio(payload: PrewarmPayload) -> dict[str, str]:
     )
     manager.request_optional(request)
     if payload.resource_id and payload.resource_id.startswith("tts:piper"):
-        if PiperTtsWorker.is_available():
+        if PiperTtsWorker.is_available(settings.tts):
             global _PIPER_PREWARM_WORKER
             if _PIPER_PREWARM_WORKER is None:
                 async with _PIPER_PREWARM_LOCK:
                     if _PIPER_PREWARM_WORKER is None:
-                        worker = PiperTtsWorker()
+                        worker = PiperTtsWorker(settings.tts)
                         if await asyncio.to_thread(worker.preload):
                             _PIPER_PREWARM_WORKER = worker
                         else:

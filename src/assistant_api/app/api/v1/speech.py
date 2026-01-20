@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Generator
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, root_validator
 
@@ -13,10 +15,12 @@ from assistant_api.app.audio.encoders.mp3 import Mp3Encoder
 from assistant_api.app.audio.encoders.opus import OpusEncoder
 from assistant_api.app.audio.encoders.pcm import PcmPassthroughEncoder
 from assistant_api.app.audio.types import Channels, PcmSpec, SampleRate
+from assistant_api.app.settings import Settings
 from assistant_api.app.workers.tts_dummy import DummyTtsWorker
 from assistant_api.app.workers.tts_piper import PiperTtsWorker
 
 router = APIRouter(prefix="/v1/audio", tags=["speech"])
+logger = logging.getLogger(__name__)
 
 
 class SpeechRequest(BaseModel):
@@ -34,8 +38,15 @@ class SpeechRequest(BaseModel):
         return values
 
 
+def get_settings(request: Request) -> Settings:
+    return request.app.state.settings
+
+
 @router.post("/speech")
-def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
+def synthesize_speech(
+    request: SpeechRequest,
+    settings: Settings = Depends(get_settings),
+) -> StreamingResponse:
     """Stream PCM audio for the requested text."""
     text = request.input if request.input is not None else request.text
     payload = {"text": text, "voice": request.voice, "format": request.format}
@@ -46,17 +57,20 @@ def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
     )
     pcm_spec = default_pcm_spec
     model_name = "assistant-api-tts-dummy"
-    if PiperTtsWorker.is_available():
+    if settings.tts.engine == "piper":
+        worker = PiperTtsWorker(settings.tts)
         try:
-            worker = PiperTtsWorker()
             stream = worker.process(payload)
-            pcm_spec = worker.pcm_spec or default_pcm_spec
-            model_name = "assistant-api-tts-piper"
-        except Exception:
-            worker = DummyTtsWorker()
-            stream = worker.process(payload)
-            pcm_spec = default_pcm_spec
-            model_name = "assistant-api-tts-dummy"
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception("Piper TTS failed.")
+            raise HTTPException(
+                status_code=500,
+                detail="Piper TTS failed to synthesize speech.",
+            ) from exc
+        pcm_spec = worker.pcm_spec or default_pcm_spec
+        model_name = "assistant-api-tts-piper"
     else:
         worker = DummyTtsWorker()
         stream = worker.process(payload)

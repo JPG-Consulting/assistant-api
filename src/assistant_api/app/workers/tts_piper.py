@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import importlib.util
 import logging
-import os
 from pathlib import Path
 from typing import Any, Iterable
 
 from assistant_api.app.audio.pcm_stream import PcmBufferStream
 from assistant_api.app.audio.stream import AudioStream
 from assistant_api.app.audio.types import Channels, PcmSpec, SampleRate
+from assistant_api.app.settings import TtsSettings
 from assistant_api.app.workers.base import BaseWorker
 
-_MODEL_PATH_ENV = "PIPER_MODEL_PATH"
 _DEFAULT_SAMPLE_RATE = SampleRate(16_000)
 _PCM_SAMPLE_WIDTH_BYTES = 2
 _DEFAULT_CHUNK_SIZE = 4096
@@ -23,8 +22,10 @@ logger = logging.getLogger(__name__)
 class PiperTtsWorker(BaseWorker):
     """TTS worker backed by Piper."""
 
-    def __init__(self) -> None:
+    def __init__(self, settings: TtsSettings) -> None:
+        self._settings = settings
         self._voice: Any | None = None
+        self._voice_id: str | None = None
         self._pcm_spec: PcmSpec | None = None
 
     @classmethod
@@ -32,28 +33,13 @@ class PiperTtsWorker(BaseWorker):
         return "tts:piper"
 
     @classmethod
-    def is_available(cls) -> bool:
-        logger.info(
-            "PiperTtsWorker: checking availability using Python module (no external binary)."
-        )
+    def is_available(cls, settings: TtsSettings) -> bool:
+        if settings.engine != "piper":
+            logger.info("PiperTtsWorker: availability = False (engine=%s)", settings.engine)
+            return False
         if importlib.util.find_spec("piper") is None:
             logger.warning("PiperTtsWorker: availability = False (reason: module missing)")
             return False
-        model_path = _get_model_path()
-        if model_path is None:
-            logger.warning(
-                "PiperTtsWorker: availability = False (reason: %s unset)", _MODEL_PATH_ENV
-            )
-            return False
-        if not model_path.is_file():
-            logger.warning(
-                "PiperTtsWorker: availability = False (reason: model file missing at %s)",
-                model_path,
-            )
-            return False
-        logger.info(
-            "PiperTtsWorker: availability = True (model path: %s)", model_path
-        )
         return True
 
     @property
@@ -61,7 +47,9 @@ class PiperTtsWorker(BaseWorker):
         return self._pcm_spec
 
     def process(self, payload: Any) -> AudioStream:
-        voice = self._load_voice()
+        voice_id = _extract_voice(payload, self._settings.default_model)
+        logger.info("PiperTtsWorker: using voice model %s", voice_id)
+        voice = self._load_voice(voice_id)
         text = _extract_text(payload)
         stream = PcmBufferStream()
         for chunk in _synthesize_pcm_chunks(voice, text):
@@ -76,45 +64,42 @@ class PiperTtsWorker(BaseWorker):
     def preload(self) -> bool:
         """Load the Piper voice model if needed."""
         try:
-            self._load_voice()
+            voice_id = _extract_voice({}, self._settings.default_model)
+            self._load_voice(voice_id)
         except Exception as exc:
             logger.warning("Piper preload failed: %s", exc)
             return False
         return True
 
-    def _load_voice(self) -> Any:
-        if self._voice is not None:
+    def _load_voice(self, voice_id: str) -> Any:
+        if self._voice is not None and self._voice_id == voice_id:
             return self._voice
         if importlib.util.find_spec("piper") is None:
             logger.error(
                 "PiperTtsWorker: Piper module missing; external binary is not used."
             )
             raise RuntimeError("Piper is not installed.")
-        model_path = _get_model_path()
-        if model_path is None or not model_path.is_file():
+        model_path = self._resolve_model_path(voice_id)
+        if not model_path.is_file():
             logger.error(
-                "PiperTtsWorker: model file missing; %s must point to a Piper model file.",
-                _MODEL_PATH_ENV,
+                "PiperTtsWorker: model file missing at %s",
+                model_path,
             )
-            raise RuntimeError(
-                f"Piper model file not found. Set {_MODEL_PATH_ENV} to a valid path."
-            )
+            raise FileNotFoundError(f"Piper model file not found: {model_path}")
         from piper.voice import PiperVoice
 
         logger.info(
             "PiperTtsWorker: loading Piper voice from model path: %s", model_path
         )
         self._voice = PiperVoice.load(str(model_path))
+        self._voice_id = voice_id
         self._pcm_spec = _pcm_spec_from_voice(self._voice)
         return self._voice
 
-
-def _get_model_path() -> Path | None:
-    model_path = os.environ.get(_MODEL_PATH_ENV)
-    if not model_path:
-        return None
-    logger.info("PiperTtsWorker: resolved %s=%s", _MODEL_PATH_ENV, model_path)
-    return Path(model_path)
+    def _resolve_model_path(self, voice_id: str) -> Path:
+        if not self._settings.models_path:
+            raise RuntimeError("Piper models_path is not configured.")
+        return self._settings.models_path / f"{voice_id}.onnx"
 
 
 def _extract_text(payload: Any) -> str:
@@ -124,6 +109,16 @@ def _extract_text(payload: Any) -> str:
     if payload is None:
         return ""
     return str(payload)
+
+
+def _extract_voice(payload: Any, default_model: str | None) -> str:
+    if isinstance(payload, dict):
+        voice = payload.get("voice")
+        if voice:
+            return str(voice)
+    if default_model:
+        return default_model
+    raise ValueError("No Piper voice specified and no default_model configured.")
 
 
 def _pcm_spec_from_voice(voice: Any) -> PcmSpec:
