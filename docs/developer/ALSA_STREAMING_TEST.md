@@ -18,3 +18,6 @@ Playback is PCM-only with explicit parameters passed to `aplay`:
 
 ## Manual test scope
 This is a manual test intended for developer verification. It is not designed for CI, and only PCM playback is supported.
+
+## Related manual test
+For compressed audio streaming validation (MP3 or Opus via FFmpeg), see `FFMPEG_STREAMING_TEST.md`.

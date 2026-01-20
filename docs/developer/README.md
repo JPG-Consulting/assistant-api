@@ -8,6 +8,7 @@ This section describes the current architecture and developer workflow for assis
 - Repository layout: `directory_structure.md`
 - Known gaps and follow-ups: `../../TODO.md`
 - AI-assisted changes must follow `../../AGENTS.md`
+- Manual ALSA streaming tests: `ALSA_STREAMING_TEST.md`, `FFMPEG_STREAMING_TEST.md`
 
 Session-based or incremental TTS is future work; documentation should reflect current behavior.
 

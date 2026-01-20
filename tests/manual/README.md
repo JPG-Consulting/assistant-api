@@ -49,6 +49,21 @@ This test validates:
 
 ---
 
+### play_tts_ffmpeg_alsa.sh
+
+Plays streamed compressed TTS audio (MP3 or Opus) by decoding with `ffmpeg` and
+sending PCM output to ALSA in real time.
+
+#### Purpose
+
+This test validates:
+
+- `/v1/audio/speech` streaming behavior for compressed formats
+- Incremental decoding with `ffmpeg`
+- ALSA playback compatibility using PCM output
+
+---
+
 ## Requirements
 
 - Linux
