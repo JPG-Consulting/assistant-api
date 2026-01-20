@@ -96,7 +96,7 @@ python tests/manual/play_tts_alsa.py \
 
 | Argument | Description |
 |---|---|
-| `text` | The text to be spoken. Must be quoted if it contains spaces. |
+| `text` | The text to be spoken. Must be quoted if it contains spaces. Sent to the API as the `input` field (preferred, OpenAI-compatible). |
 
 ---
 

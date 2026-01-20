@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 
 from assistant_api.app.audio.encoders.mp3 import Mp3Encoder
 from assistant_api.app.audio.encoders.opus import OpusEncoder
@@ -22,15 +22,23 @@ router = APIRouter(prefix="/v1/audio", tags=["speech"])
 class SpeechRequest(BaseModel):
     """Minimal speech synthesis payload."""
 
-    text: str
+    input: str | None = None
+    text: str | None = None
     voice: str | None = None
     format: str | None = None
+
+    @root_validator(pre=True)
+    def require_input_or_text(cls, values: dict[str, object]) -> dict[str, object]:
+        if values.get("input") is None and values.get("text") is None:
+            raise ValueError("Request must include either 'input' (preferred) or 'text'.")
+        return values
 
 
 @router.post("/speech")
 def synthesize_speech(request: SpeechRequest) -> StreamingResponse:
     """Stream PCM audio for the requested text."""
-    payload = {"text": request.text, "voice": request.voice, "format": request.format}
+    text = request.input if request.input is not None else request.text
+    payload = {"text": text, "voice": request.voice, "format": request.format}
     default_pcm_spec = PcmSpec(
         sample_rate=SampleRate(16_000),
         channels=Channels(1),

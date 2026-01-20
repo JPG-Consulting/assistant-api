@@ -8,6 +8,7 @@ assistant-api is a Python backend service for voice assistants. It currently exp
 - **Streaming pipeline**: text → PCM → encoder → HTTP stream.
 - **Supported formats**: `mp3` (default), `opus`, `pcm`.
 - **Engines**: the dummy TTS worker is always available; Piper is used when installed and configured.
+- **Request fields**: `input` is the OpenAI-compatible text field; `text` is accepted for backward compatibility. At least one of `input` or `text` is required, and `input` takes precedence when both are provided.
 
 ## Prewarm behavior
 
