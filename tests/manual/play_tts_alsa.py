@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--format", default="pcm", choices=["pcm", "mp3", "opus"], help="Audio format")
     parser.add_argument("--model", default=None, help="Model identifier")
     parser.add_argument("--voice", default=None, help="Voice identifier")
+    # Defaults align with Piper PCM output: 16kHz, mono, S16_LE.
     parser.add_argument("--sample-rate", type=int, default=16000, help="PCM sample rate for playback")
     parser.add_argument("--channels", type=int, default=1, help="PCM channel count for playback")
     parser.add_argument("--host", default="127.0.0.1", help="Server host")

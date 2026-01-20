@@ -1,7 +1,7 @@
 # FFmpeg Compressed Streaming Test (ALSA)
 
 ## Purpose
-This manual test validates compressed audio streaming behavior for the `/v1/audio/speech` endpoint. It confirms that MP3 or Opus output can be decoded incrementally and played in real time via ALSA while the HTTP response is still streaming.
+This manual test validates compressed audio streaming behavior for the `/v1/audio/speech` endpoint. It confirms that MP3 or Opus output can be decoded incrementally and played in real time via ALSA while the HTTP response is still streaming. It is not suitable for debugging raw PCM issues.
 
 ## Streaming pipeline
 The script uses a streaming-only pipeline with no temporary files:
