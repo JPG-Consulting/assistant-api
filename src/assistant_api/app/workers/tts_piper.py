@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import itertools
 import logging
 import sys
 from array import array
@@ -159,26 +160,49 @@ def _synthesize_pcm_chunks(voice: Any, text: str) -> Iterable[bytes]:
                 yield normalized
         return
     output = voice.synthesize(text)
-    if _is_chunk_iterable(output):
-        for chunk in output:
-            normalized = _normalize_pcm_chunk(chunk)
-            if normalized:
-                yield normalized
-        return
+    audio_chunk_type = _get_audio_chunk_type()
+    if audio_chunk_type is not None:
+        if isinstance(output, audio_chunk_type):
+            logger.info("PiperTtsWorker: streaming AudioChunk PCM bytes")
+            yield from _chunk_bytes(output.audio_int16_bytes, _DEFAULT_CHUNK_SIZE)
+            return
+        if isinstance(output, (list, tuple)) and output and isinstance(
+            output[0], audio_chunk_type
+        ):
+            logger.info("PiperTtsWorker: streaming AudioChunk PCM bytes")
+            for audio_chunk in output:
+                yield from _chunk_bytes(
+                    audio_chunk.audio_int16_bytes, _DEFAULT_CHUNK_SIZE
+                )
+            return
+        if isinstance(output, Iterable) and _is_chunk_iterable(output):
+            iterator, probe = itertools.tee(output)
+            try:
+                first_chunk = next(probe)
+            except StopIteration:
+                return
+            if isinstance(first_chunk, audio_chunk_type):
+                logger.info("PiperTtsWorker: streaming AudioChunk PCM bytes")
+                for audio_chunk in iterator:
+                    yield from _chunk_bytes(
+                        audio_chunk.audio_int16_bytes, _DEFAULT_CHUNK_SIZE
+                    )
+                return
+            output = list(iterator)
+    logger.debug(
+        "PiperTtsWorker: using legacy normalization for synthesize() output type %s",
+        type(output),
+    )
     pcm_bytes = _normalize_pcm_chunk(output)
     yield from _chunk_bytes(pcm_bytes, _DEFAULT_CHUNK_SIZE)
 
 
 def _normalize_pcm_chunk(chunk: Any) -> bytes:
-    if isinstance(chunk, tuple) and chunk:
-        return _normalize_pcm_chunk(chunk[0])
     audio_chunk_type = _get_audio_chunk_type()
     if audio_chunk_type is not None and isinstance(chunk, audio_chunk_type):
-        logger.info("PiperTtsWorker: normalizing AudioChunk PCM samples")
-        sample_count = _get_audio_sample_count(chunk.samples)
-        if sample_count is not None:
-            logger.debug("PiperTtsWorker: AudioChunk sample count=%s", sample_count)
-        return _normalize_float_pcm(chunk.samples)
+        return chunk.audio_int16_bytes
+    if isinstance(chunk, tuple) and chunk:
+        return _normalize_pcm_chunk(chunk[0])
     if isinstance(chunk, (bytes, bytearray, memoryview)):
         return bytes(chunk)
     if isinstance(chunk, array):
