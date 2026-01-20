@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class PiperTtsWorker(BaseWorker):
-    """TTS worker backed by Piper."""
+    """TTS worker backed by the Python `piper` module (not the CLI binary)."""
 
     def __init__(self, settings: TtsSettings) -> None:
         self._settings = settings
@@ -73,7 +73,14 @@ class PiperTtsWorker(BaseWorker):
 
     def _load_voice(self, voice_id: str) -> Any:
         if self._voice is not None and self._voice_id == voice_id:
+            logger.info("PiperTtsWorker: reusing cached voice model %s", voice_id)
             return self._voice
+        if self._voice is not None and self._voice_id != voice_id:
+            logger.info(
+                "PiperTtsWorker: switching voice from %s to %s",
+                self._voice_id,
+                voice_id,
+            )
         if importlib.util.find_spec("piper") is None:
             logger.error(
                 "PiperTtsWorker: Piper module missing; external binary is not used."
@@ -97,6 +104,8 @@ class PiperTtsWorker(BaseWorker):
         return self._voice
 
     def _resolve_model_path(self, voice_id: str) -> Path:
+        # Model paths are resolved only via TtsSettings.models_path; environment
+        # variables are not treated as primary configuration for Piper models.
         if not self._settings.models_path:
             raise RuntimeError("Piper models_path is not configured.")
         return self._settings.models_path / f"{voice_id}.onnx"

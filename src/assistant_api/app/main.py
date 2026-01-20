@@ -68,6 +68,7 @@ def create_app() -> FastAPI:
     app.state.settings = settings
     app.state.config_path = str(config_path)
     logger = logging.getLogger(__name__)
+    logger.info("Loaded configuration from %s", config_path)
     logger.info(
         "TTS configuration: engine=%s models_path=%s default_model=%s",
         settings.tts.engine,

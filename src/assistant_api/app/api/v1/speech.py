@@ -58,6 +58,12 @@ def synthesize_speech(
     pcm_spec = default_pcm_spec
     model_name = "assistant-api-tts-dummy"
     if settings.tts.engine == "piper":
+        resolved_voice = request.voice or settings.tts.default_model
+        logger.info("Using Piper TTS engine")
+        logger.info(
+            "Piper TTS: resolved voice=%s",
+            resolved_voice or "<unspecified>",
+        )
         worker = PiperTtsWorker(settings.tts)
         try:
             stream = worker.process(payload)
@@ -72,6 +78,7 @@ def synthesize_speech(
         pcm_spec = worker.pcm_spec or default_pcm_spec
         model_name = "assistant-api-tts-piper"
     else:
+        logger.info("Using Dummy TTS engine")
         worker = DummyTtsWorker()
         stream = worker.process(payload)
     if request.format is None or request.format == "mp3":

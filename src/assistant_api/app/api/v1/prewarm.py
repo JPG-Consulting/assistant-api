@@ -45,6 +45,11 @@ async def prewarm_audio(
     manager.request_optional(request)
     if payload.resource_id and payload.resource_id.startswith("tts:piper"):
         if PiperTtsWorker.is_available(settings.tts):
+            voice_id = payload.voice or settings.tts.default_model
+            logger.info(
+                "Piper prewarm requested for voice=%s",
+                voice_id or "<unspecified>",
+            )
             global _PIPER_PREWARM_WORKER
             if _PIPER_PREWARM_WORKER is None:
                 async with _PIPER_PREWARM_LOCK:
@@ -52,6 +57,11 @@ async def prewarm_audio(
                         worker = PiperTtsWorker(settings.tts)
                         if await asyncio.to_thread(worker.preload):
                             _PIPER_PREWARM_WORKER = worker
+                            logger.info("Piper prewarm succeeded")
                         else:
                             logger.warning("Piper prewarm skipped: preload failed")
+                    else:
+                        logger.info("Piper prewarm skipped: model already loaded")
+            else:
+                logger.info("Piper prewarm skipped: model already loaded")
     return {"status": "accepted"}
