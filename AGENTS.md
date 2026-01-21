@@ -88,6 +88,9 @@ Workers:
 - Do not interact with HTTP
 - Do not manage sessions or clients
 
+Piper TTS workers must treat Python API outputs (e.g. `AudioChunk`) as authoritative
+PCM and must not introduce hidden normalization, resampling, or caching behavior.
+
 Workers may evolve, but their interface must remain explicit and predictable.
 
 ---

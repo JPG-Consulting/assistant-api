@@ -6,10 +6,12 @@ Concrete follow-ups based on the current codebase.
 
 - Add a worker pool or background process manager so Piper inference runs outside
   the request handler and can be reused across requests.
-- Implement voice/model selection so the `voice` field maps to specific Piper
-  model files (currently `PIPER_MODEL_PATH` is the only model source).
-- Expose structured error reporting for Piper load failures instead of silently
-  falling back to dummy audio.
+- (DONE) Voice/model selection via configuration (`tts.models_path`,
+  `tts.default_model`) and per-request `voice` mapping to `<voice>.onnx`.
+- Improve structured error reporting (stable error codes/messages) for Piper TTS
+  failures beyond current logging and HTTP error responses.
+- (DONE) Document Piper Python API PCM contract (`AudioChunk.audio_int16_bytes`)
+  to avoid incorrect normalization or resampling.
 
 ## Audio
 
