@@ -2,6 +2,39 @@
 
 Concrete follow-ups based on the current codebase.
 
+## Planned: LLM Subsystem
+
+The following items describe planned future work to expand `assistant-api` beyond Text-to-Speech (TTS).
+None of the items in this section are implemented yet.
+
+### Phase 1 — LLM endpoint (foundational)
+- Add a basic LLM endpoint for conversational text generation
+- Integrate a local LLM provider (e.g. Ollama) for initial responses
+- Support streaming responses
+- Keep scope minimal and non-stateful initially
+
+### Phase 2 — Intent detection
+- Introduce an intent-detection layer to classify user inputs
+- Use a lightweight model for low-latency intent classification
+- Route simple commands without invoking the full conversational model
+
+### Phase 3 — Conversation context
+- Support limited conversation context for more natural dialogue
+- Define context retention and lifecycle rules
+- Keep memory scope explicit and conservative
+
+### Phase 4 — Retrieval (RAG)
+- Add optional retrieval of external or stored information
+- Integrate retrieved context into LLM responses
+- Keep latency suitable for real-time interaction
+
+### Phase 5 — Optional fallback provider
+- Support an optional external LLM provider as a fallback
+- Use fallback only when local models cannot answer confidently
+- Optionally store durable knowledge for future local retrieval
+
+All LLM-related design intent is described in `docs/LLM_OVERVIEW.md`.
+
 ## TTS
 
 - Add a worker pool or background process manager so Piper inference runs outside

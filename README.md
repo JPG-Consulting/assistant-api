@@ -22,6 +22,22 @@ assistant-api is a Python backend service for voice assistants. It currently exp
 - AI assistant context: `docs/ai/README.md`
 - Backlog and follow-ups: `TODO.md`
 
+### Roadmap (High-level)
+
+`assistant-api` currently provides a minimal, OpenAI-compatible **Text-to-Speech (TTS)** API with streaming audio output.
+
+Future phases are planned to expand `assistant-api` into a more complete backend for voice and conversational assistants, including:
+
+- Large Language Model (LLM) endpoints
+- Conversation handling and context management
+- Intent detection
+- Multilingual interaction
+- Optional retrieval and fallback providers
+
+These features are **not implemented yet**.
+
+Planned work is intentionally tracked in `TODO.md` to avoid documenting behavior that does not exist.
+
 ## Status
 
 The repository contains a working TTS endpoint with streaming audio output. Session-based or incremental TTS is future work; see `TODO.md` for follow-ups.
