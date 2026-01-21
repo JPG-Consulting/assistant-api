@@ -12,6 +12,7 @@ from fastapi import FastAPI
 
 from assistant_api.app.api.v1 import api_router
 from assistant_api.app.core.prewarm import get_prewarm_manager
+from assistant_api.app.llm.router import router as llm_router
 from assistant_api.app.settings import DEFAULT_CONFIG_PATH, load_settings
 
 if TYPE_CHECKING:
@@ -97,6 +98,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(api_router)
+    app.include_router(llm_router)
 
     return app
 
