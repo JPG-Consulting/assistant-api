@@ -15,3 +15,18 @@ tts:
   # in the Piper worker for subsequent requests.
   default_model: en_US-amy-low
   # Additional models can be requested per call using the "voice" field.
+
+llm:
+  # LLM provider to use (currently only "ollama").
+  provider: ollama
+  # Ollama model name.
+  model: mistral:7b-instruct-q4
+  # Ollama host URL.
+  host: http://localhost:11434
+  # Sampling temperature.
+  temperature: 0.7
+  # Maximum tokens to generate per request.
+  max_tokens: 256
+  persona:
+    # Enable the base persona system prompt.
+    enabled: true

@@ -19,6 +19,7 @@ class Settings:
 
     log_directory: Path
     tts: TtsSettings
+    llm: LlmSettings
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,25 @@ class TtsSettings:
     engine: str
     models_path: Path | None
     default_model: str | None
+
+
+@dataclass(frozen=True)
+class LlmSettings:
+    """Typed configuration for LLM providers."""
+
+    provider: str
+    model: str
+    host: str
+    temperature: float
+    max_tokens: int
+    persona: PersonaSettings
+
+
+@dataclass(frozen=True)
+class PersonaSettings:
+    """Typed configuration for persona behavior."""
+
+    enabled: bool
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -80,4 +100,35 @@ def load_settings(config_path: str = DEFAULT_CONFIG_PATH) -> Settings:
         default_model=default_model,
     )
 
-    return Settings(log_directory=Path(log_directory), tts=tts_settings)
+    llm_config = config.get("llm")
+    if not isinstance(llm_config, dict):
+        raise ValueError("Missing or invalid 'llm' configuration.")
+    provider = llm_config.get("provider", "ollama")
+    if provider != "ollama":
+        raise ValueError("LLM provider must be 'ollama'.")
+    model = llm_config.get("model")
+    if not model:
+        raise ValueError("LLM config requires a 'model'.")
+    host = llm_config.get("host", "http://localhost:11434")
+    temperature = float(llm_config.get("temperature", 0.7))
+    max_tokens = int(llm_config.get("max_tokens", 256))
+    persona_config = llm_config.get("persona", {})
+    if not isinstance(persona_config, dict):
+        raise ValueError("LLM 'persona' must be a mapping.")
+    persona_enabled = bool(persona_config.get("enabled", True))
+    persona_settings = PersonaSettings(enabled=persona_enabled)
+
+    llm_settings = LlmSettings(
+        provider=provider,
+        model=str(model),
+        host=str(host),
+        temperature=temperature,
+        max_tokens=max_tokens,
+        persona=persona_settings,
+    )
+
+    return Settings(
+        log_directory=Path(log_directory),
+        tts=tts_settings,
+        llm=llm_settings,
+    )
