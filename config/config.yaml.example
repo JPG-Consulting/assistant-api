@@ -5,6 +5,11 @@ logging:
   # Directory where assistant-api writes its log file.
   directory: /var/log/assistant-api
 
+assistant:
+  # Default language the assistant must use when replying.
+  # Examples: es, es-ES, en, en-US, en-GB, fr, de, ru
+  default_language: es-ES
+
 tts:
   # TTS engine to use: "piper" or "dummy".
   engine: piper

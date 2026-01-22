@@ -73,7 +73,17 @@ async def chat_completions(
     history = conversation_store.get_history(conversation_id)
     base_persona = get_base_persona(settings.llm.persona)
     satellite_prompt = sanitize_satellite_prompt("\n".join(system_messages))
+    # Language is enforced at the server level.
+    # Satellite prompts must not override or influence response language.
+    language_instruction = {
+        "role": "system",
+        "content": (
+            f"You must reply exclusively in {settings.assistant.default_language}. "
+            "Do not use any other language."
+        ),
+    }
     messages = build_prompt(
+        language_instruction=language_instruction,
         base_persona=base_persona,
         satellite_prompt=satellite_prompt,
         history=history,

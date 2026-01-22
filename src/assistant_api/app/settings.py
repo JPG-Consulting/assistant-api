@@ -20,6 +20,7 @@ class Settings:
     log_directory: Path
     tts: TtsSettings
     llm: LlmSettings
+    assistant: AssistantSettings
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,13 @@ class PersonaSettings:
 
     enabled: bool
     content: str | None
+
+
+@dataclass(frozen=True)
+class AssistantSettings:
+    """Typed configuration for assistant behavior."""
+
+    default_language: str
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -146,8 +154,17 @@ def load_settings(config_path: str = DEFAULT_CONFIG_PATH) -> Settings:
         persona=persona_settings,
     )
 
+    assistant_config = config.get("assistant", {})
+    if not isinstance(assistant_config, dict):
+        raise ValueError("Missing or invalid 'assistant' configuration.")
+    language = assistant_config.get("default_language")
+    if not isinstance(language, str) or not language.strip():
+        raise ValueError("assistant.default_language must be a non-empty string.")
+    assistant_settings = AssistantSettings(default_language=language.strip())
+
     return Settings(
         log_directory=Path(log_directory),
         tts=tts_settings,
         llm=llm_settings,
+        assistant=assistant_settings,
     )
