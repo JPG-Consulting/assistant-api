@@ -20,7 +20,7 @@ llm:
   # LLM provider to use (currently only "ollama").
   provider: ollama
   # Ollama model name.
-  model: mistral:7b-instruct-q4
+  model: mistral:7b-instruct-q4_0
   # Ollama host URL.
   host: http://localhost:11434
   # Sampling temperature.
