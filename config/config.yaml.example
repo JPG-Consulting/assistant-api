@@ -30,3 +30,4 @@ llm:
   persona:
     # Enable the base persona system prompt.
     enabled: true
+    file: /etc/assistant-api/persona.txt

@@ -1,9 +1,11 @@
 """Persona definitions."""
 
-BASE_PERSONA = "You are a helpful assistant."
+from __future__ import annotations
+
+from assistant_api.app.settings import PersonaSettings
 
 
-def get_base_persona(enabled: bool) -> str | None:
-    if not enabled:
+def get_base_persona(settings: PersonaSettings) -> str | None:
+    if not settings.enabled:
         return None
-    return BASE_PERSONA
+    return settings.content

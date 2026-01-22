@@ -48,6 +48,7 @@ class PersonaSettings:
     """Typed configuration for persona behavior."""
 
     enabled: bool
+    content: str | None
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -116,7 +117,25 @@ def load_settings(config_path: str = DEFAULT_CONFIG_PATH) -> Settings:
     if not isinstance(persona_config, dict):
         raise ValueError("LLM 'persona' must be a mapping.")
     persona_enabled = bool(persona_config.get("enabled", True))
-    persona_settings = PersonaSettings(enabled=persona_enabled)
+    persona_file_value = persona_config.get("file")
+    persona_file = Path(persona_file_value) if persona_file_value else None
+    persona_content: str | None = None
+    if persona_enabled:
+        if not persona_file:
+            raise ValueError("Persona is enabled but no persona file was provided.")
+        if not persona_file.is_file():
+            raise ValueError(f"Persona file not found: {persona_file}")
+        try:
+            content = persona_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise ValueError(
+                f"Persona file is not a readable text file: {persona_file}"
+            ) from exc
+        stripped = content.strip()
+        if not stripped:
+            raise ValueError(f"Persona file is empty: {persona_file}")
+        persona_content = stripped
+    persona_settings = PersonaSettings(enabled=persona_enabled, content=persona_content)
 
     llm_settings = LlmSettings(
         provider=provider,

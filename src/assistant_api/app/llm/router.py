@@ -71,7 +71,7 @@ async def chat_completions(
     )
     # Server owns conversation history.
     history = conversation_store.get_history(conversation_id)
-    base_persona = get_base_persona(settings.llm.persona.enabled)
+    base_persona = get_base_persona(settings.llm.persona)
     satellite_prompt = sanitize_satellite_prompt("\n".join(system_messages))
     messages = build_prompt(
         base_persona=base_persona,
