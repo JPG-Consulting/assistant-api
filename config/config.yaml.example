@@ -8,7 +8,7 @@ logging:
 assistant:
   # Default language the assistant must use when replying.
   # Examples: es, es-ES, en, en-US, en-GB, fr, de, ru
-  default_language: es-ES
+  default_language: en
 
 tts:
   # TTS engine to use: "piper" or "dummy".
