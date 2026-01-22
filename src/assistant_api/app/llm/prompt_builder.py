@@ -10,6 +10,7 @@ Message = dict[str, str]
 def build_prompt(
     *,
     language_instruction: Message | None,
+    response_mode_instruction: Message | None,
     base_persona: str | None,
     satellite_prompt: str | None,
     history: Iterable[Message],
@@ -19,6 +20,8 @@ def build_prompt(
 
     if language_instruction:
         messages.append(language_instruction)
+    if response_mode_instruction:
+        messages.append(response_mode_instruction)
     if base_persona:
         messages.append({"role": "system", "content": base_persona})
     if satellite_prompt:
