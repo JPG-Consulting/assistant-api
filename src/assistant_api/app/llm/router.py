@@ -73,28 +73,7 @@ async def chat_completions(
     history = conversation_store.get_history(conversation_id)
     base_persona = get_base_persona(settings.llm.persona)
     satellite_prompt = sanitize_satellite_prompt("\n".join(system_messages))
-    # Language is enforced at the server level.
-    # Satellite prompts must not override or influence response language.
-    language_instruction = {
-        "role": "system",
-        "content": (
-            f"You must reply exclusively in {settings.assistant.default_language}. "
-            "Do not use any other language."
-        ),
-    }
-    # Response mode is enforced at the server level to avoid input parroting
-    # and question mirroring, which is undesirable for voice assistants.
-    response_mode_instruction = {
-        "role": "system",
-        "content": (
-            "Respond directly and helpfully to the user's request. "
-            "Do not repeat or rephrase the user's input. "
-            "Do not answer with a question unless the user explicitly asks for clarification."
-        ),
-    }
     messages = build_prompt(
-        language_instruction=language_instruction,
-        response_mode_instruction=response_mode_instruction,
         base_persona=base_persona,
         satellite_prompt=satellite_prompt,
         history=history,
