@@ -57,6 +57,35 @@ The planned LLM subsystem includes the concept of a base system persona:
 
 This persona may be configurable or disabled via configuration, but such behavior is future work.
 
+## Prompt orchestration decision (LLM endpoint)
+
+During early LLM endpoint development, the project attempted to control assistant behavior
+(language selection, response style, anti-parroting rules) by injecting multiple system prompts
+from backend code. This caused unstable behavior across local models (Mistral, Llama), including:
+
+- Input parroting
+- Random language switching
+- Over-generic or low-value replies
+- Conflicting or contradictory system instructions
+
+The decision is to keep prompt orchestration intentionally simple and model-agnostic:
+
+This decision applies regardless of the specific local LLM used (for example Mistral, Llama, or future models).
+
+- The base persona in `config/persona.txt` is the single source of truth for assistant behavior.
+- Backend code must not enforce language, response style, or conversational rules.
+- The backend acts as a neutral message router, not a conversational agent.
+- Language handling is natural: reply in the user's language, and only translate or switch languages
+  when explicitly requested.
+- Over-prompting and heuristic prompt injection are avoided to improve stability across models.
+
+Implementation outcome for the LLM endpoint:
+
+- Only one system prompt is used for assistant behavior: the persona.
+- Optional satellite-supplied system prompts may exist but must be sanitized and minimal.
+- No additional system instructions (language forcing, response mode, anti-parroting) are injected
+  by the backend.
+
 ## Intent detection (conceptual)
 
 A future intent-detection layer may be introduced to:
