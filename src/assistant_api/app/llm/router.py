@@ -16,6 +16,7 @@ from assistant_api.app.llm.persona import get_base_persona
 from assistant_api.app.llm.prompt_builder import build_prompt
 from assistant_api.app.llm.providers.ollama import OllamaError, chat
 from assistant_api.app.llm.satellite_prompt import sanitize_satellite_prompt
+from assistant_api.app.llm.tool_requests import try_parse_tool_request
 from assistant_api.app.settings import Settings
 
 router = APIRouter()
@@ -93,11 +94,15 @@ async def chat_completions(
     except OllamaError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
-    conversation_store.append_turn(
-        conversation_id,
-        latest_user_message,
-        assistant_reply,
-    )
+    tool_request = try_parse_tool_request(assistant_reply)
+    assistant_content = "" if tool_request else assistant_reply
+
+    if not tool_request:
+        conversation_store.append_turn(
+            conversation_id,
+            latest_user_message,
+            assistant_content,
+        )
 
     response = {
         "id": f"chatcmpl-{uuid4().hex}",
@@ -108,9 +113,11 @@ async def chat_completions(
         "choices": [
             {
                 "index": 0,
-                "message": {"role": "assistant", "content": assistant_reply},
+                "message": {"role": "assistant", "content": assistant_content},
                 "finish_reason": "stop",
             }
         ],
     }
+    if tool_request:
+        response["tool_request"] = tool_request
     return response
