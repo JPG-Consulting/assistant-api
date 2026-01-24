@@ -23,7 +23,7 @@ router = APIRouter()
 
 
 class ChatMessage(BaseModel):
-    role: str
+    role: str  # user | system | assistant | tool_result
     content: str | None = None
 
 
@@ -55,13 +55,18 @@ async def chat_completions(
 
     latest_user_message = None
     system_messages: list[str] = []
+    tool_result_messages: list[dict[str, str]] = []
     for message in payload.messages:
-        if message.role not in {"user", "system", "assistant"}:
+        if message.role not in {"user", "system", "assistant", "tool_result"}:
             continue
         if message.role == "user" and message.content:
             latest_user_message = message.content
         elif message.role == "system" and message.content:
             system_messages.append(message.content)
+        elif message.role == "tool_result" and message.content is not None:
+            tool_result_messages.append(
+                {"role": message.role, "content": message.content}
+            )
         # Client assistant messages are intentionally ignored.
 
     if not latest_user_message:
@@ -72,12 +77,19 @@ async def chat_completions(
     )
     # Server owns conversation history.
     history = conversation_store.get_history(conversation_id)
+    # tool_result messages are passed through verbatim; orchestration is future work.
+    if conversation_store.is_tool_request_pending(conversation_id):
+        prompt_history = [*history, *tool_result_messages]
+        if tool_result_messages:
+            conversation_store.set_tool_request_pending(conversation_id, False)
+    else:
+        prompt_history = history
     base_persona = get_base_persona(settings.llm.persona)
     satellite_prompt = sanitize_satellite_prompt("\n".join(system_messages))
     messages = build_prompt(
         base_persona=base_persona,
         satellite_prompt=satellite_prompt,
-        history=history,
+        history=prompt_history,
         user_message=latest_user_message,
     )
 
@@ -97,6 +109,7 @@ async def chat_completions(
     tool_request = try_parse_tool_request(assistant_reply)
     assistant_content = "" if tool_request else assistant_reply
 
+    conversation_store.set_tool_request_pending(conversation_id, bool(tool_request))
     if not tool_request:
         conversation_store.append_turn(
             conversation_id,

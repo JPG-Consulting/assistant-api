@@ -4,6 +4,9 @@ This document describes the planned direction for adding Large Language Model (L
 
 The LLM subsystem described here is not implemented yet.
 All items in this document represent design intent only and are tracked as future work in TODO.md.
+For tool request details, see `docs/TOOLS_OVERVIEW.md`.
+Tool result orchestration is planned and documented in `docs/TOOL_RESULTS.md`.
+For a concrete tool interaction flow, see `docs/TOOLS_OVERVIEW.md`.
 
 ## Purpose
 

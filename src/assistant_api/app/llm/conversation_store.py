@@ -16,12 +16,14 @@ class ConversationStore:
 
     max_turns: int = 10
     _conversations: dict[str, list[Message]] = field(default_factory=dict)
+    _tool_request_pending: dict[str, bool] = field(default_factory=dict)
     _lock: Lock = field(default_factory=Lock)
 
     def create_conversation_id(self) -> str:
         conversation_id = str(uuid4())
         with self._lock:
             self._conversations.setdefault(conversation_id, [])
+            self._tool_request_pending.setdefault(conversation_id, False)
         return conversation_id
 
     def get_history(self, conversation_id: str) -> list[Message]:
@@ -45,6 +47,14 @@ class ConversationStore:
     ) -> None:
         self.append_message(conversation_id, "user", user_message)
         self.append_message(conversation_id, "assistant", assistant_message)
+
+    def is_tool_request_pending(self, conversation_id: str) -> bool:
+        with self._lock:
+            return self._tool_request_pending.get(conversation_id, False)
+
+    def set_tool_request_pending(self, conversation_id: str, pending: bool) -> None:
+        with self._lock:
+            self._tool_request_pending[conversation_id] = pending
 
 
 conversation_store = ConversationStore()

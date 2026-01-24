@@ -33,6 +33,15 @@ None of the items in this section are implemented yet.
 - Use fallback only when local models cannot answer confidently
 - Optionally store durable knowledge for future local retrieval
 
+### Tools (future)
+- Define tool execution orchestration (client-side or server-side).
+- Define a `tool_result` message schema for returning outputs.
+- Define `tool_result` message handling in the LLM request flow.
+- Re-inject tool results into the LLM for follow-up responses.
+- Support multi-step tool loops with explicit boundaries.
+- Document streaming behavior when tools are involved.
+- Clarify defensive rules for ignoring orphan tool_result messages (non-orchestration).
+
 All LLM-related design intent is described in `docs/LLM_OVERVIEW.md`.
 
 ## TTS
